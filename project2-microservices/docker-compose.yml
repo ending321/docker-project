@@ -1,0 +1,67 @@
+# docker-compose.yml
+version: '2.4'
+
+services:
+  nginx:
+    build: ./nginx
+    ports:
+      - "81:80"
+    depends_on:
+      - web-service
+      - api-service
+    networks:
+      - app-network
+
+  web-service:
+    build: ./web-service
+    environment:
+      - API_URL=http://api-service:8000
+    depends_on:
+      - api-service
+    networks:
+      - app-network
+
+  api-service:
+    build: ./api-service
+    environment:
+      - DB_HOST=192.168.31.17  # MySQL主库地址
+      - DB_USER=root
+      - DB_PASSWORD=chenjiewei
+      - DB_NAME=appdb
+    depends_on:
+      - mysql
+    networks:
+      - app-network
+
+  mysql:
+    image: mysql:8.0
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./mysql/my.cnf:/etc/mysql/my.cnf
+      - ./mysql/mysql-files:/var/lib/mysql-files
+    environment:
+      - MYSQL_ROOT_PASSWORD=chenjiewei
+      - MYSQL_DATABASE=appdb
+    networks:
+      - app-network
+    restart: always
+    ports:
+      - "3307:3306"
+
+  jenkins:
+    image: jenkins/jenkins
+    container_name: jenkins
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    volumes:
+      - ./jenkins/jenkins_home:/var/jenkins_home
+      # 保留 Docker 相关挂载（操作宿主机 Docker）
+      - /var/run/docker.sock:/var/run/docker.sock
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  mysql-data:

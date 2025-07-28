@@ -1,0 +1,2 @@
+grant replication slave on *.* to 'slaveroot'@'%' identified by 'chenjiewei';
+flush privileges;

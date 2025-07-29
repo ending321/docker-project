@@ -11,6 +11,7 @@ services:
       - api-service
     networks:
       - app-network
+    restart: unless-stopped
 
   web-service:
     build: ./web-service
@@ -24,7 +25,7 @@ services:
   api-service:
     build: ./api-service
     environment:
-      - DB_HOST=192.168.31.17  # MySQL主库地址
+      - DB_HOST=mysql  # 同一网络内用服务器名"mysql访问"，无需宿主机IP
       - DB_USER=root
       - DB_PASSWORD=chenjiewei
       - DB_NAME=appdb
@@ -32,6 +33,9 @@ services:
       - mysql
     networks:
       - app-network
+        #ports:
+        #- "8000:8000" #临时映射端口，方便测试API（后续可通过nginx代理）
+    restart: unless-stopped
 
   mysql:
     image: mysql:8.0
@@ -47,10 +51,17 @@ services:
     restart: always
     ports:
       - "3307:3306"
+    restart: always
+    healthcheck:  #检测mysql是否就绪，避免API启动时连接失败
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p$$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   jenkins:
     image: jenkins/jenkins
-    container_name: jenkins
+      #container_name: jenkins-project2
     ports:
       - "8080:8080"
       - "50000:50000"
@@ -58,6 +69,14 @@ services:
       - ./jenkins/jenkins_home:/var/jenkins_home
       # 保留 Docker 相关挂载（操作宿主机 Docker）
       - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker
+      - /etc/docker/daemon.json:/etc/docker/daemon.json
+    user: "0:0" #以root身份运行
+    depends_on:
+      - nginx
+    networks:
+      - app-network
+    restart: always
 
 networks:
   app-network:

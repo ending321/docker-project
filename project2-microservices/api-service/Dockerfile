@@ -3,7 +3,9 @@ FROM python:3.9-slim
 # 创建并写入新的 sources.list（适用于 slim 镜像）
 RUN echo "deb http://mirrors.aliyun.com/debian bookworm main contrib non-free" > /etc/apt/sources.list \
 	&& echo "deb http://mirrors.aliyun.com/debian bookworm-updates main contrib non-free" >> /etc/apt/sources.list \
-	&& echo "deb http://mirrors.aliyun.com/debian-security bookworm-security main contrib non-free" >> /etc/apt/sources.list
+	&& echo "deb http://mirrors.aliyun.com/debian-security bookworm-security main contrib non-free" >> /etc/apt/sources.list\
+ 	# 禁用官方源（关键）
+  	&& sed -i '/deb.debian.org/d' /etc/apt/sources.list
 
 WORKDIR /app
 

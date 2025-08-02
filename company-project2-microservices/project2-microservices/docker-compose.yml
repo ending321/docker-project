@@ -1,0 +1,77 @@
+# docker-compose.yml
+version: '3.8'
+
+services:
+  nginx:
+    build: ./nginx
+    ports:
+      - "81:80"
+    depends_on:
+      - web-service
+      - api-service
+    networks:
+      - app-network
+
+  web-service:
+    build: ./web-service
+    environment:
+      - API_URL=http://api-service:8000
+    depends_on:
+      - api-service
+    networks:
+      - app-network
+
+  api-service:
+    build: ./api-service
+    environment:
+      - DB_HOST=mysql  # MySQL主库地址
+      - DB_USER=root
+      - DB_PASSWORD=chenjiewei
+      - DB_NAME=appdb
+    depends_on:
+      - mysql
+    networks:
+      - app-network
+
+  mysql:
+    image: mysql:8.0
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./mysql/my.cnf:/etc/mysql/my.cnf
+    environment:
+      - MYSQL_ROOT_PASSWORD=chenjiewei
+      - MYSQL_DATABASE=appdb
+    networks:
+      - app-network
+    restart: always
+    ports:
+      - "3307:3306"
+    healthcheck:  #检测mysql是否就绪，避免API启动时连接失败
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p$$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  mysql-slave:
+    #container_name: mysql-slave
+    image: mysql:8.0
+    volumes:
+      - mysql-slave-data:/var/lib/mysql
+      - ./mysql-slave/my.cnf:/etc/mysql/my.cnf
+    environment:
+      - MYSQL_ROOT_PASSWORD=chenjiewei
+    networks:
+      - app-network
+    restart: always
+    ports:
+      - "3308:3306"
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
+  mysql-slave-data:
+  jenkins-project2-data:

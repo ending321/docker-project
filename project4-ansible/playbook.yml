@@ -1,0 +1,37 @@
+- hosts: localhost
+  connection: local
+  tasks:
+    - name: Create required directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+        recurse: yes
+        loop:
+          - ./data/mysql-mediawiki
+          - ./exporters/mysqld
+
+  tasks:
+    - name: Deploy MySQL for MediaWiki
+      docker_container:
+        name: mw-mysql
+        image: mysql:5.7
+        env:
+          MYSQL_ROOT_PASSWORD: chenjiewei
+          MYSQL_DATABASE: mediawiki
+        volumes:
+          - ./data/mysql-mediawiki:/var/lib/mysql
+          - ./exporters/mysqld:/etc/mysqld_exporter
+        networks:
+          - name: pro4-wiki-monitor
+        restart_policy: always
+        healthcheck:
+          test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -psecret"]
+          interval: 5s
+          timeout: 5s
+          retries: 5
+
+    - name: Create Docker network on remote
+      docker_network:
+        name: pro4-wiki-monitor
+        state: present
